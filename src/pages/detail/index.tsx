@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useHistory, RouteComponentProps } from "react-router-dom";
 import {
   Container,
@@ -6,15 +6,26 @@ import {
   H2Title,
   TableStyled,
   ButtonStyled,
+  WishlistInput,
+  FormControl,
+  ButtonSubmit,
+  ListWishlist,
+  Clear,
 } from "./style";
+
+const defaultTemp = { name: "", wishlist: "" };
 
 function Detail({ match }: RouteComponentProps<{ id: string }>) {
   const history = useHistory();
   const [response, setResponse] = useState<{ [key: string]: any }>({});
+  const [tempValue, setTempValue] = useState(defaultTemp);
+  const [wishlist, setWishlist] = useState(
+    sessionStorage.getItem("whislist") || ""
+  );
+
   const {
     params: { id },
   } = match;
-
 
   useEffect(() => {
     const fetchData = async () => {
@@ -24,7 +35,15 @@ function Detail({ match }: RouteComponentProps<{ id: string }>) {
     };
 
     fetchData();
+    return function cleanup() {
+      sessionStorage.removeItem("whislist");
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    sessionStorage.setItem("whislist", wishlist);
+  }, [wishlist]);
 
   const dateFormated = (dateProps: string) => {
     let formated = "";
@@ -44,6 +63,20 @@ function Detail({ match }: RouteComponentProps<{ id: string }>) {
       });
     }
     return formated;
+  };
+  const submitedForm = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const wishfromStorage = sessionStorage.getItem("whislist");
+    let value = "";
+    if (wishfromStorage) {
+      let temp = JSON.parse(wishfromStorage);
+      temp.push(tempValue);
+      value = JSON.stringify(temp);
+    } else {
+      value = JSON.stringify([tempValue]);
+    }
+    setWishlist(value);
+    setTempValue(defaultTemp);
   };
 
   return (
@@ -110,6 +143,53 @@ function Detail({ match }: RouteComponentProps<{ id: string }>) {
             </tr>
           </tbody>
         </TableStyled>
+        <hr />
+        <ListWishlist>
+          <h3>List Wishlist</h3>
+          <ul>
+            {wishlist ? (
+              JSON.parse(wishlist).map(
+                (x: { name: string; wishlist: string }, i: number) => (
+                  <li key={i}>
+                    {x.name} ---- {x.wishlist}
+                  </li>
+                )
+              )
+            ) : (
+              <li>No wishlist yet!!</li>
+            )}
+          </ul>
+        </ListWishlist>
+        <WishlistInput>
+          <form onSubmit={submitedForm}>
+            <FormControl>
+              <label>Name Planet</label>
+              <input
+                value={tempValue.name}
+                onChange={(e) =>
+                  setTempValue({
+                    ...tempValue,
+                    name: e.target.value,
+                  })
+                }
+              />
+            </FormControl>
+            <FormControl>
+              <label>Your Whislist / Hope</label>
+              <textarea
+                value={tempValue.wishlist}
+                onChange={(e) =>
+                  setTempValue({
+                    ...tempValue,
+                    wishlist: e.target.value,
+                  })
+                }
+              />
+            </FormControl>
+            <ButtonSubmit>Submit</ButtonSubmit>
+            <Clear />
+          </form>
+        </WishlistInput>
         <ButtonStyled onClick={() => history.goBack()}>Back</ButtonStyled>
       </DetailDiv>
     </Container>
